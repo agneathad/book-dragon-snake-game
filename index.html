@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐉 Book Dragon</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #faf7ff;
+      color: #3a1050;
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+    }
+    #bd-wrap { max-width: 480px; margin: 0 auto; }
+    #bd-header { text-align: center; margin-bottom: 0.75rem; }
+    #bd-header h1 { font-size: 22px; font-weight: 500; color: #3a1050; }
+    #bd-header p { font-size: 12px; color: #7a3fa0; margin-top: 4px; }
+    #bd-diff { display: flex; justify-content: center; gap: 6px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .diff-btn { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid #d0b0e8; background: transparent; color: #7a3fa0; cursor: pointer; transition: all 0.2s; }
+    .diff-btn:hover { background: #f5eaff; }
+    .diff-btn.active { background: #8b3fc0; color: #fff; border-color: #8b3fc0; }
+    #bd-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0 2px; }
+    #bd-lives { font-size: 18px; letter-spacing: 2px; }
+    .bd-stat-val { font-size: 20px; font-weight: 500; color: #3a1050; }
+    .bd-stat-lbl { font-size: 10px; color: #7a3fa0; text-transform: uppercase; letter-spacing: 0.05em; }
+    #bd-canvas-wrap { position: relative; width: 100%; }
+    #bd-canvas { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid #d0b0e8; background: #faf7ff; }
+    #bd-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(250,247,255,0.93); border-radius: 12px; }
+    #bd-overlay h2 { font-size: 16px; font-weight: 500; color: #3a1050; margin-bottom: 6px; }
+    #bd-overlay p { font-size: 12px; color: #7a3fa0; margin-bottom: 14px; text-align: center; padding: 0 1.25rem; line-height: 1.7; }
+    #bd-overlay button { font-size: 13px; padding: 7px 22px; border-radius: 8px; border: 1px solid #9b6bb5; background: #f5eaff; color: #3a1050; cursor: pointer; }
+    #bd-pup-bar { display: flex; justify-content: center; gap: 8px; min-height: 22px; margin: 0.4rem 0 0.1rem; }
+    .pup-active { background: #f5eaff; border: 1px solid #d0b0e8; border-radius: 10px; padding: 2px 10px; font-size: 11px; color: #3a1050; }
+    #bd-msg { text-align: center; font-size: 12px; color: #7a3fa0; min-height: 18px; margin: 0.2rem 0 0.4rem; font-style: italic; }
+    #bd-dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 5px; margin: 0.5rem auto; width: fit-content; }
+    .dpad-btn { width: 52px; height: 52px; border-radius: 8px; border: 1px solid #d0b0e8; background: #f5eaff; color: #3a1050; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    .dpad-btn:active { background: #e8d0ff; }
+    .dpad-empty { width: 52px; height: 52px; }
+    #bd-controls { display: flex; justify-content: center; gap: 10px; margin-top: 0.5rem; }
+    #bd-controls button { font-size: 12px; padding: 6px 16px; border-radius: 8px; border: 1px solid #d0b0e8; background: transparent; color: #3a1050; cursor: pointer; }
+    #bd-controls button:hover { background: #f5eaff; }
+    #bd-hint { text-align: center; font-size: 10px; color: #9b6bb5; margin-top: 0.5rem; }
+    #bd-footer { text-align: center; margin-top: 1.5rem; font-size: 11px; color: #c0a0d8; }
+  </style>
+</head>
+<body>
+<div id="bd-wrap">
+  <div id="bd-header">
+    <h1>🐉 Book Dragon</h1>
+    <p>Hoard books. Evade the TBR police. Grow your library.</p>
+  </div>
+  <div id="bd-diff">
+    <button class="diff-btn active" onclick="setDiff('hatchling',this)">🥚 Hatchling</button>
+    <button class="diff-btn" onclick="setDiff('dragon',this)">🐉 Dragon</button>
+    <button class="diff-btn" onclick="setDiff('evil',this)">💀 Ancient Evil</button>
+  </div>
+  <div id="bd-topbar">
+    <div><div id="bd-lives">❤️❤️❤️</div><div class="bd-stat-lbl">Lives</div></div>
+    <div style="text-align:center"><div class="bd-stat-val" id="bd-library">0</div><div class="bd-stat-lbl">Library</div></div>
+    <div style="text-align:right"><div class="bd-stat-val" id="bd-best">0</div><div class="bd-stat-lbl">Best hoard</div></div>
+  </div>
+  <div id="bd-canvas-wrap">
+    <canvas id="bd-canvas" width="480" height="360"></canvas>
+    <div id="bd-overlay">
+      <h2>🐉 Your hoard awaits</h2>
+      <p>
+        Arrow keys, WASD, d-pad, or swipe to move.<br>
+        📙 Collect books &nbsp;·&nbsp; 👮 Avoid TBR police &nbsp;·&nbsp; 3 lives<br><br>
+        ☕ Coffee — tops up a life<br>
+        🔖 Bookmark — slows speed briefly<br>
+        👓 Reading glasses — soft walls, vanquish police, dragon turns gold
+      </p>
+      <button onclick="startGame()">Begin hoarding</button>
+    </div>
+  </div>
+  <div id="bd-pup-bar"></div>
+  <div id="bd-msg">Your hoard grows...</div>
+  <div id="bd-dpad">
+    <div class="dpad-empty"></div>
+    <button class="dpad-btn" id="btn-up" aria-label="Up">↑</button>
+    <div class="dpad-empty"></div>
+    <button class="dpad-btn" id="btn-left" aria-label="Left">←</button>
+    <div class="dpad-empty"></div>
+    <button class="dpad-btn" id="btn-right" aria-label="Right">→</button>
+    <div class="dpad-empty"></div>
+    <button class="dpad-btn" id="btn-down" aria-label="Down">↓</button>
+    <div class="dpad-empty"></div>
+  </div>
+  <div id="bd-controls"><button onclick="startGame()">New game</button></div>
+  <div id="bd-hint">D-pad · Arrow keys · Swipe the board · Collect 📙 · Avoid 👮</div>
+  <div id="bd-footer">A book dragon never stops hoarding.</div>
+</div>
+
+<script>
+const canvas = document.getElementById('bd-canvas');
+const ctx = canvas.getContext('2d');
+const COLS = 24, ROWS = 18, CELL = 20;
+
+const DIFF = {
+  hatchling: { start: 350, min: 150, policeEvery: 5 },
+  dragon:    { start: 250, min: 100, policeEvery: 3 },
+  evil:      { start: 180, min:  70, policeEvery: 2 }
+};
+let difficulty = 'hatchling';
+
+const POWERUPS = ['☕','🔖','👓'];
+const BOOK_MSGS = ['Book acquired!','Your hoard grows...','TBR exceeds recommended limits.','Another one for the pile.','The librarian weeps.','Magnificent. Keep going.'];
+
+let snake, dir, nextDir, food, police, powerup, score, lives, gameLoop, running = false;
+let glassesOn = false, glassesTimer = null;
+let bookmarkOn = false, bookmarkTimer = null;
+let best = Number(localStorage.getItem('bd-best') || 0);
+
+function rnd(n) { return Math.floor(Math.random() * n); }
+function randCell(exclude = []) {
+  let cell, tries = 0;
+  do { cell = { x: rnd(COLS), y: rnd(ROWS) }; tries++; }
+  while (tries < 200 && exclude.some(e => e && e.x === cell.x && e.y === cell.y));
+  return cell;
+}
+
+function setDiff(d, btn) {
+  difficulty = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function startGame() {
+  document.getElementById('bd-overlay').style.display = 'none';
+  clearInterval(gameLoop);
+  clearTimeout(glassesTimer); clearTimeout(bookmarkTimer);
+  glassesOn = false; bookmarkOn = false;
+  lives = 3; score = 0; running = true;
+  snake = [{ x: 12, y: 9 }, { x: 11, y: 9 }, { x: 10, y: 9 }];
+  dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
+  food = randCell(snake);
+  police = null; powerup = null;
+  updateUI(); setMsg('Your hoard grows...');
+  scheduleLoop();
+}
+
+function scheduleLoop() {
+  clearInterval(gameLoop);
+  const cfg = DIFF[difficulty];
+  const speed = bookmarkOn
+    ? Math.min(cfg.start * 1.6, 500)
+    : Math.max(cfg.start - Math.floor(score / 5) * 10, cfg.min);
+  gameLoop = setInterval(tick, speed);
+}
+
+function applyDir(d) {
+  if (!running) return;
+  if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
+}
+
+function tick() {
+  if (!running) return;
+  dir = { ...nextDir };
+  let nx = snake[0].x + dir.x, ny = snake[0].y + dir.y;
+
+  if (glassesOn) {
+    nx = (nx + COLS) % COLS;
+    ny = (ny + ROWS) % ROWS;
+  } else {
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) { loseLife('Flew into a wall.'); return; }
+  }
+
+  const head = { x: nx, y: ny };
+  if (snake.some(s => s.x === head.x && s.y === head.y)) { loseLife('Tangled in your own hoard.'); return; }
+
+  if (police && head.x === police.x && head.y === police.y) {
+    if (glassesOn) { police = null; setMsg('TBR police vanquished! ✨'); }
+    else { loseLife('Caught by the TBR police.'); return; }
+  }
+
+  snake.unshift(head);
+
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    setMsg(BOOK_MSGS[rnd(BOOK_MSGS.length)]);
+    food = randCell([...snake, ...(police ? [police] : []), ...(powerup ? [powerup] : [])]);
+    const cfg = DIFF[difficulty];
+    if (score % cfg.policeEvery === 0 && !police) police = randCell([...snake, food]);
+    if (score % 5 === 0 && !powerup) powerup = { ...randCell([...snake, food, ...(police ? [police] : [])]), emoji: POWERUPS[rnd(POWERUPS.length)] };
+    scheduleLoop();
+  } else { snake.pop(); }
+
+  if (powerup && head.x === powerup.x && head.y === powerup.y) {
+    activatePowerup(powerup.emoji); powerup = null;
+  }
+
+  updateUI(); draw();
+}
+
+function loseLife(reason) {
+  lives--;
+  updateUI();
+  if (lives <= 0) { gameOver(reason); return; }
+  setMsg(`${reason} ${lives === 1 ? '⚠️ Last life!' : lives + ' lives remaining.'}`);
+}
+
+function activatePowerup(emoji) {
+  if (emoji === '☕') {
+    if (lives < 3) { lives++; setMsg('Coffee! Life restored. ❤️'); updateUI(); }
+    else setMsg('Coffee! Hoard fully energised.');
+  }
+  if (emoji === '🔖') {
+    bookmarkOn = true; setMsg('Bookmark! Taking it slow. 🔖');
+    clearTimeout(bookmarkTimer);
+    scheduleLoop();
+    bookmarkTimer = setTimeout(() => { bookmarkOn = false; scheduleLoop(); updatePupBar(); }, 5000);
+  }
+  if (emoji === '👓') {
+    glassesOn = true; setMsg('Reading glasses! Walls are soft. Police beware. 👓');
+    clearTimeout(glassesTimer);
+    glassesTimer = setTimeout(() => { glassesOn = false; updatePupBar(); draw(); }, 8000);
+  }
+  updatePupBar();
+}
+
+function gameOver(reason) {
+  running = false; clearInterval(gameLoop);
+  clearTimeout(glassesTimer); clearTimeout(bookmarkTimer);
+  glassesOn = false; bookmarkOn = false;
+  if (score > best) { best = score; try { localStorage.setItem('bd-best', best); } catch(e) {} }
+  updateUI();
+  const ov = document.getElementById('bd-overlay');
+  ov.innerHTML = `<h2>🐉 Hoard dispersed</h2><p>${reason}<br><br>Library: ${score} books${score >= best && score > 0 ? '<br>New best hoard! 🏆' : ''}</p><button onclick="startGame()">Hoard again</button>`;
+  ov.style.display = 'flex';
+  draw();
+}
+
+function setMsg(m) { document.getElementById('bd-msg').textContent = m; }
+
+function updateUI() {
+  document.getElementById('bd-library').textContent = score;
+  document.getElementById('bd-best').textContent = best;
+  const h = lives >= 3 ? '❤️❤️❤️' : lives === 2 ? '❤️❤️🖤' : lives === 1 ? '❤️🖤🖤' : '🖤🖤🖤';
+  document.getElementById('bd-lives').textContent = h;
+  updatePupBar();
+}
+
+function updatePupBar() {
+  const bar = document.getElementById('bd-pup-bar');
+  const items = [];
+  if (glassesOn) items.push('<span class="pup-active">👓 Glasses active</span>');
+  if (bookmarkOn) items.push('<span class="pup-active">🔖 Slowed</span>');
+  bar.innerHTML = items.join('');
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = glassesOn ? '#fffbea' : '#faf7ff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = glassesOn ? '#f0e080' : '#ede0f7';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,ROWS*CELL); ctx.stroke(); }
+  for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(COLS*CELL,y*CELL); ctx.stroke(); }
+  if (!glassesOn) { ctx.strokeStyle = '#d0b0e8'; ctx.lineWidth = 2; ctx.strokeRect(0,0,COLS*CELL,ROWS*CELL); }
+
+  snake.forEach((s, i) => {
+    const t = i / snake.length;
+    let color;
+    if (glassesOn) color = i === 0 ? '#b8860b' : `hsl(45,${80-t*20}%,${55-t*15}%)`;
+    else if (bookmarkOn) color = i === 0 ? '#1a6bb5' : `hsl(210,${60-t*20}%,${60-t*20}%)`;
+    else color = i === 0 ? '#8b3fc0' : `hsl(270,${60-t*20}%,${70-t*20}%)`;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.roundRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2,4); ctx.fill();
+    if (i === 0) { ctx.font=`${CELL-4}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🐉',s.x*CELL+CELL/2,s.y*CELL+CELL/2); }
+  });
+
+  ctx.font=`${CELL-2}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('📙',food.x*CELL+CELL/2,food.y*CELL+CELL/2);
+  if (police) ctx.fillText('👮',police.x*CELL+CELL/2,police.y*CELL+CELL/2);
+  if (powerup) ctx.fillText(powerup.emoji,powerup.x*CELL+CELL/2,powerup.y*CELL+CELL/2);
+}
+
+const DIRS = {
+  ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
+  w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}
+};
+document.addEventListener('keydown', e => { if (DIRS[e.key]) { applyDir(DIRS[e.key]); e.preventDefault(); } });
+
+function addDpad(id, d) {
+  const btn = document.getElementById(id);
+  btn.addEventListener('touchstart', e => { e.preventDefault(); applyDir(d); }, { passive: false });
+  btn.addEventListener('mousedown', e => { e.preventDefault(); applyDir(d); });
+}
+addDpad('btn-up',{x:0,y:-1}); addDpad('btn-down',{x:0,y:1});
+addDpad('btn-left',{x:-1,y:0}); addDpad('btn-right',{x:1,y:0});
+
+let tX, tY;
+canvas.addEventListener('touchstart', e => { tX=e.touches[0].clientX; tY=e.touches[0].clientY; e.preventDefault(); }, { passive:false });
+canvas.addEventListener('touchend', e => {
+  const dx=e.changedTouches[0].clientX-tX, dy=e.changedTouches[0].clientY-tY;
+  if (Math.abs(dx)<10 && Math.abs(dy)<10) return;
+  if (Math.abs(dx)>Math.abs(dy)) applyDir(dx>0?{x:1,y:0}:{x:-1,y:0});
+  else applyDir(dy>0?{x:0,y:1}:{x:0,y:-1});
+  e.preventDefault();
+}, { passive:false });
+
+updateUI(); draw();
+</script>
+</body>
+</html>
