@@ -2,7 +2,7 @@
 
 A browser-based snake game where you are a dragon hoarding books, evading the TBR police, and growing your library one title at a time.
 
-**[Play it here →](https://agneathad.github.io/book-dragon/)**
+**[Play it here →](https://agneathad.github.io/book-dragon-snake-game/)**
 
 
 
